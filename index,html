@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<title>Calculator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%; background: #000; color: #fff;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+  }
+  .calc {
+    height: 100%; max-width: 480px; margin: 0 auto;
+    display: flex; flex-direction: column; padding: 16px;
+  }
+  .display {
+    flex: 1; display: flex; align-items: flex-end; justify-content: flex-end;
+    padding: 10px 8px; overflow: hidden;
+  }
+  #result {
+    font-size: 84px; font-weight: 300; white-space: nowrap;
+    overflow: hidden; text-overflow: clip;
+  }
+  .pad {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  button {
+    border: none; border-radius: 50%; aspect-ratio: 1 / 1; width: 100%;
+    font-size: 30px; color: #fff; background: #333; cursor: pointer;
+    user-select: none; transition: filter .1s;
+  }
+  button:active { filter: brightness(1.6); }
+  .fn { background: #a5a5a5; color: #000; }
+  .op { background: #ff9f0a; }
+  .op.active { background: #fff; color: #ff9f0a; }
+  .zero { grid-column: span 2; border-radius: 50px; aspect-ratio: auto; text-align: left; padding-left: 32%; }
+</style>
+</head>
+<body>
+<div class="calc">
+  <div class="display"><div id="result">0</div></div>
+  <div class="pad" id="pad">
+    <button class="fn" data-action="clear">AC</button>
+    <button class="fn" data-action="sign">+/−</button>
+    <button class="fn" data-action="percent">%</button>
+    <button class="op" data-op="÷">÷</button>
+
+    <button data-digit="7">7</button>
+    <button data-digit="8">8</button>
+    <button data-digit="9">9</button>
+    <button class="op" data-op="×">×</button>
+
+    <button data-digit="4">4</button>
+    <button data-digit="5">5</button>
+    <button data-digit="6">6</button>
+    <button class="op" data-op="−">−</button>
+
+    <button data-digit="1">1</button>
+    <button data-digit="2">2</button>
+    <button data-digit="3">3</button>
+    <button class="op" data-op="+">+</button>
+
+    <button class="zero" data-digit="0">0</button>
+    <button data-action="dot">.</button>
+    <button class="op" data-action="equals">=</button>
+  </div>
+</div>
+
+<script>
+  let cur = "0", prev = null, op = null, fresh = false;
+  const res = document.getElementById("result");
+
+  function show() {
+    res.textContent = cur;
+    res.style.fontSize = cur.length > 9 ? "48px" : cur.length > 6 ? "64px" : "84px";
+    document.querySelectorAll(".op").forEach(b =>
+      b.classList.toggle("active", b.dataset.op === op && fresh));
+  }
+
+  function digit(d) {
+    if (fresh || cur === "0" && d !== ".") { cur = d; fresh = false; }
+    else if (cur.replace("-", "").length < 12) cur += d;
+    show();
+  }
+
+  function dot() {
+    if (fresh) { cur = "0."; fresh = false; }
+    else if (!cur.includes(".")) cur += ".";
+    show();
+  }
+
+  function calc(a, b, o) {
+    switch (o) {
+      case "+": return a + b;
+      case "−": return a - b;
+      case "×": return a * b;
+      case "÷": return b === 0 ? NaN : a / b;
+    }
+  }
+
+  function format(n) {
+    if (!isFinite(n)) return "Error";
+    return String(parseFloat(n.toFixed(10)));
+  }
+
+  function setOp(o) {
+    if (op && !fresh) {
+      const r = calc(parseFloat(prev), parseFloat(cur), op);
+      cur = format(r);
+      prev = cur;
+    } else {
+      prev = cur;
+    }
+    op = o;
+    fresh = true;
+    show();
+  }
+
+  function equals() {
+    if (!op) return;
+    const r = calc(parseFloat(prev), parseFloat(cur), op);
+    cur = format(r);
+    prev = null; op = null; fresh = true;
+    show();
+  }
+
+  function clear() { cur = "0"; prev = null; op = null; fresh = false; show(); }
+  function sign() { if (cur !== "0") cur = cur.startsWith("-") ? cur.slice(1) : "-" + cur; show(); }
+  function percent() { cur = format(parseFloat(cur) / 100); show(); }
+
+  document.getElementById("pad").addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.digit !== undefined) digit(b.dataset.digit);
+    else if (b.dataset.op) setOp(b.dataset.op);
+    else switch (b.dataset.action) {
+      case "clear": clear(); break;
+      case "sign": sign(); break;
+      case "percent": percent(); break;
+      case "dot": dot(); break;
+      case "equals": equals(); break;
+    }
+  });
+
+  show();
+</script>
+</body>
+</html>
